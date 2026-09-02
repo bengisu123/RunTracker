@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Geolocation from '@react-native-community/geolocation';
 import {
+  PermissionsAndroid,
   Pressable,
   StyleSheet,
   Text,
@@ -11,10 +13,17 @@ import {
   SafeAreaView, 
 } from 'react-native-safe-area-context';
 
+
+
 function App() {
   
   const [isRunning, setIsRunning] = useState(false); 
   const [seconds, setSeconds] = useState(0);
+  const [distance, setDistance] = useState(0);
+  const [calories, setCalories] = useState(0);
+  const [pace, setPace] = useState('--:--');
+
+  const watchIdRef = useRef<number | null>(null);
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -28,9 +37,80 @@ function App() {
 
 
   const resetTimer = () => {
+    if (watchIdRef.current !== null) {
+      Geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+
     setIsRunning(false);
     setSeconds(0);
+    setDistance(0);
+    setCalories(0);
+    setPace('--:--');
   };
+
+  const requestLocationPermission = async () => {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+    );
+
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      console.log('Konum izni verildi');
+      return true;
+    }
+
+    else if (granted === PermissionsAndroid.RESULTS.DENIED) {
+      console.log('Konum izni reddedildi');
+      return false;
+    }
+
+    else if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+      console.log('Konum izni kalıcı olarak reddedildi');
+      return false;
+    }
+
+    return false;
+  };
+
+
+  const handleRunButton = async () => {
+    if (isRunning) {
+      if (watchIdRef.current !== null) {
+        Geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+
+      setIsRunning(false);
+      return;
+    }
+
+    const hasPermission = await requestLocationPermission();
+
+    if(hasPermission) {
+      const watchId = Geolocation.watchPosition(
+        (position) => {
+          console.log('Yeni konum:', position.coords);
+        },
+
+        (error) => {
+          console.log('Konum hatası:',error);
+        },
+        
+        {
+        enableHighAccuracy: true,
+        distanceFilter: 1,
+        interval: 2000,
+        fastestInterval: 1000,
+        }
+
+      );
+
+      watchIdRef.current = watchId;
+      setIsRunning(true);     
+    }
+  };
+
+
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | undefined;
@@ -90,17 +170,17 @@ function App() {
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>Mesafe</Text>
-              <Text style={styles.statValue}>0.00 km</Text>
+              <Text style={styles.statValue}>{distance.toFixed(2)} km</Text>
             </View>
 
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>Kalori</Text>
-              <Text style={styles.statValue}>0 kcal</Text>
+              <Text style={styles.statValue}>{calories} kcal</Text>
             </View>
 
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>Pace</Text>
-              <Text style={styles.statValue}>--:--</Text>
+              <Text style={styles.statLabel}>Tempo</Text>
+              <Text style={styles.statValue}>{pace} dk/km</Text>
             </View>
           </View>
 
@@ -108,7 +188,7 @@ function App() {
           <View style={styles.buttonGroup}>
             <Pressable 
               style={styles.button}
-              onPress={() => setIsRunning(!isRunning)}
+              onPress={handleRunButton}
               >
               <Text style={styles.buttonText}>
                 {isRunning ? 'Koşuyu Bitir' : 'Koşuyu Başlat'}   
@@ -250,15 +330,21 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: '#102131',
+    padding: 14,
+    borderRadius: 14,
     
   },
 
   statLabel: {
     fontSize: 12,
+    color: '#8D9AAA',
+    marginBottom: 6,
   },
 
   statValue: {
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FFFFFF', 
   },
 
 
