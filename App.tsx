@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Geolocation from '@react-native-community/geolocation';
+import MapView, {Polyline} from 'react-native-maps';
 import {
   PermissionsAndroid,
   Pressable,
@@ -13,7 +14,10 @@ import {
   SafeAreaView, 
 } from 'react-native-safe-area-context';
 
-
+type LocationPoint = {
+  latitude: number,
+  longitude: number,
+};
 
 function App() {
   
@@ -22,8 +26,9 @@ function App() {
   const [distance, setDistance] = useState(0);
   const [calories, setCalories] = useState(0);
   const [pace, setPace] = useState('--:--');
+  const [locations,setLocations] = useState<LocationPoint[]>([]);
 
-  const watchIdRef = useRef<number | null>(null);
+  const watchIdRef = useRef<number | null>(null);     //İçinde sayı veya null tutulabilen bir ref oluştur ve başlangıç değerini null yap.
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -47,6 +52,7 @@ function App() {
     setDistance(0);
     setCalories(0);
     setPace('--:--');
+    setLocations([]);
   };
 
   const requestLocationPermission = async () => {
@@ -89,7 +95,18 @@ function App() {
     if(hasPermission) {
       const watchId = Geolocation.watchPosition(
         (position) => {
-          console.log('Yeni konum:', position.coords);
+          const newLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+
+          setLocations((prevLocations) => [
+            ...prevLocations,
+            newLocation,
+          ]);
+
+
+          console.log('Yeni konum:', newLocation);
         },
 
         (error) => {
@@ -119,7 +136,7 @@ function App() {
       timer = setInterval(() => {
         setSeconds((prevSeconds) => prevSeconds + 1);   // setSeconds(seconds + 1)  
       }, 1000);
-    }
+    } 
 
     return () => {
       if (timer) {
@@ -129,12 +146,12 @@ function App() {
   }, [isRunning]);    //dependency array
 
 
-  return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.container}>
+          <View style={styles.content}>
 
-          <View style={styles.header}>
+            <View style={styles.header}>
             <Text style={styles.title}>RunTracker</Text>
 
 
@@ -162,6 +179,22 @@ function App() {
               Günlük koşu hedefin
             </Text>
           </View>
+
+          <MapView 
+            style={styles.map}
+            initialRegion={{
+              latitude: locations.length > 0 ? locations[0].latitude : 37.4219983,
+              longitude: locations.length > 0 ? locations[0].longitude : -122.084,
+              latitudeDelta: 0.005,
+              longitudeDelta: 0.005,
+            }}
+          >
+                      
+          <Polyline 
+            coordinates={locations}
+            strokeWidth={4}
+          />
+          </MapView>
 
 
           <Text style={styles.timer}>{formatTime(seconds)}</Text> 
@@ -347,7 +380,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF', 
   },
 
-
+  map: {
+    width: '100%',
+    height: 220,
+    marginBottom: 24,
+    borderRadius: 20,
+  },
 
 });
 
