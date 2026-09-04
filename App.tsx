@@ -30,6 +30,8 @@ function App() {
 
   const watchIdRef = useRef<number | null>(null);     //İçinde sayı veya null tutulabilen bir ref oluştur ve başlangıç değerini null yap.
 
+  const mapRef = useRef<MapView | null>(null); 
+
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -40,6 +42,36 @@ function App() {
     }:${String(secs).padStart(2, '0')}`;  
   };
 
+
+  const calculateDistance = (
+    point1: LocationPoint,
+    point2: LocationPoint
+  ) => {
+    const earthRadius = 6371;
+
+    const lat1 = point1.latitude * (Math.PI / 180);
+    const lat2 = point2.latitude * (Math.PI / 180);
+
+    const deltaLat =
+      (point2.latitude - point1.latitude) * (Math.PI / 180);
+
+    const deltaLon =
+      (point2.longitude - point1.longitude) * (Math.PI / 180);
+
+    const a =
+      Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+      Math.cos(lat1) *
+        Math.cos(lat2) *
+        Math.sin(deltaLon / 2) *
+        Math.sin(deltaLon / 2);
+
+    const c = 2 * Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1 - a)
+    );
+
+    return earthRadius * c;
+  };
 
   const resetTimer = () => {
     if (watchIdRef.current !== null) {
@@ -100,11 +132,36 @@ function App() {
             longitude: position.coords.longitude,
           };
 
-          setLocations((prevLocations) => [
-            ...prevLocations,
-            newLocation,
-          ]);
+          setLocations((prevLocations) => {
+            if(prevLocations.length > 0) {
+              const lastLocation =
+                prevLocations[prevLocations.length - 1];
 
+              const newDistance = calculateDistance(
+                lastLocation,
+                newLocation
+              );
+
+              setDistance((prevDistance) =>
+                prevDistance + newDistance
+              );
+            }
+
+            return [
+              ...prevLocations,
+              newLocation,
+            ];
+          });
+
+          mapRef.current?.animateToRegion(
+            {
+            latitude: newLocation.latitude,
+            longitude: newLocation.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+            },
+            1000
+          );
 
           console.log('Yeni konum:', newLocation);
         },
@@ -181,10 +238,15 @@ function App() {
           </View>
 
           <MapView 
+            ref={mapRef}
             style={styles.map}
             initialRegion={{
-              latitude: locations.length > 0 ? locations[0].latitude : 37.4219983,
-              longitude: locations.length > 0 ? locations[0].longitude : -122.084,
+              latitude: locations.length > 0
+               ? locations[0].latitude
+               : 37.4219983,
+              longitude: locations.length > 0
+               ? locations[0].longitude
+               : -122.084,
               latitudeDelta: 0.005,
               longitudeDelta: 0.005,
             }}
