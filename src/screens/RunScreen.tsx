@@ -1,35 +1,56 @@
-import React, { useState, useEffect, useRef} from 'react';
-
-import Geolocation from '@react-native-community/geolocation';
+import React, { useState, useRef, useEffect} from 'react';
 import MapView, {Polyline} from 'react-native-maps';
 
 import {
-    PermissionsAndroid,
     StyleSheet,
     Text,
     View,
 } from 'react-native';
 
 import { Button } from 'react-native-paper';
-
-type LocationPoint = {
-  latitude: number,
-  longitude: number,
-};
+import { useRun } from '../context/RunContext';
+import StartRunButton from '../components/StartRunButton';
 
 function RunScreen () {
 
-  const [isRunning, setIsRunning] = useState(false); 
-  const [seconds, setSeconds] = useState(0);
-  const [distance, setDistance] = useState(0);
+    const {
+      seconds,
+      distance,
+      locations,
+      resetRun,
+    } = useRun();
+ 
   const [calories, setCalories] = useState(0);
-  const [pace, setPace] = useState('--:--');
-  const [locations,setLocations] = useState<LocationPoint[]>([]); 
+  //const [pace, setPace] = useState('---/---');
 
+  const weight = 60;
 
-  const watchIdRef = useRef<number | null>(null);     //İçinde sayı veya null tutulabilen bir ref oluştur ve başlangıç değerini null yap.
+  useEffect(() => {
+    const calculatedCalories = distance * weight * 1.036;
+
+    setCalories(calculatedCalories);
+  }, [distance]);
+
 
   const mapRef = useRef<MapView | null>(null); 
+
+  useEffect(() => {
+  if (locations.length === 0) {
+    return;
+  }
+
+  const lastLocation = locations[locations.length - 1];
+
+  mapRef.current?.animateToRegion(
+    {
+      latitude: lastLocation.latitude,
+      longitude: lastLocation.longitude,
+      latitudeDelta: 0.005,
+      longitudeDelta: 0.005,
+    },
+    1000
+  );
+}, [locations]);
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -41,164 +62,24 @@ function RunScreen () {
     }:${String(secs).padStart(2, '0')}`;  
   };
 
+  const calculatePace = () => {
+    if (distance <= 0) {
+      return '--:--';
+    }
 
-  const calculateDistance = (
-    point1: LocationPoint,
-    point2: LocationPoint
-  ) => {
-    const earthRadius = 6371;
+    const totalMinutes = seconds / 60;
 
-    const lat1 = point1.latitude * (Math.PI / 180);
-    const lat2 = point2.latitude * (Math.PI / 180);
+    const paceInMinutes = totalMinutes / distance;
 
-    const deltaLat =
-      (point2.latitude - point1.latitude) * (Math.PI / 180);
+    const minutes = Math.floor(paceInMinutes);
 
-    const deltaLon =
-      (point2.longitude - point1.longitude) * (Math.PI / 180);
-
-    const a =
-      Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-      Math.cos(lat1) *
-        Math.cos(lat2) *
-        Math.sin(deltaLon / 2) *
-        Math.sin(deltaLon / 2);
-
-    const c = 2 * Math.atan2(
-      Math.sqrt(a),
-      Math.sqrt(1 - a)
+    const secondsPart = Math.round(
+      (paceInMinutes - minutes) * 60
     );
 
-    return earthRadius * c;
+    return `${minutes}:${String(secondsPart).padStart(2, '0')}`;
   };
 
-  const resetTimer = () => {
-    if (watchIdRef.current !== null) {
-      Geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-
-    setIsRunning(false);
-    setSeconds(0);
-    setDistance(0);
-    setCalories(0);
-    setPace('--:--');
-    setLocations([]);
-  };
-
-  const requestLocationPermission = async () => {
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-    );
-
-    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-      console.log('Konum izni verildi');
-      return true;
-    }
-
-    else if (granted === PermissionsAndroid.RESULTS.DENIED) {
-      console.log('Konum izni reddedildi');
-      return false;
-    }
-
-    else if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
-      console.log('Konum izni kalıcı olarak reddedildi');
-      return false;
-    }
-
-    return false;
-  };
-
-
-  const handleRunButton = async () => {
-    if (isRunning) {
-      if (watchIdRef.current !== null) {
-        Geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
-
-      setIsRunning(false);
-      return;
-    }
-
-    const hasPermission = await requestLocationPermission();
-
-    if(hasPermission) {
-      const watchId = Geolocation.watchPosition(
-        (position) => {
-          const newLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-
-          setLocations((prevLocations) => {
-            if(prevLocations.length > 0) {
-              const lastLocation =
-                prevLocations[prevLocations.length - 1];
-
-              const newDistance = calculateDistance(
-                lastLocation,
-                newLocation
-              );
-
-              setDistance((prevDistance) =>
-                prevDistance + newDistance
-              );
-            }
-
-            return [
-              ...prevLocations,
-              newLocation,
-            ];
-          });
-
-          mapRef.current?.animateToRegion(
-            {
-            latitude: newLocation.latitude,
-            longitude: newLocation.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-            },
-            1
-          );
-
-          console.log('Yeni konum:', newLocation);
-        },
-
-        (error) => {
-          console.log('Konum hatası:',error);
-        },
-        
-        {
-        enableHighAccuracy: true,
-        distanceFilter: 1,
-        interval: 2000,
-        fastestInterval: 1000,
-        }
-
-      );
-
-      watchIdRef.current = watchId;
-      setIsRunning(true);     
-    }
-  };
-
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | undefined;
-
-    if (isRunning) {
-      timer = setInterval(() => {
-        setSeconds((prevSeconds) => prevSeconds + 1);   // setSeconds(seconds + 1)  
-      }, 1000);
-    } 
-
-    return () => {
-      if (timer) {
-      clearInterval(timer);
-      }
-    };
-  }, [isRunning]);  
 
     return(
         <View style={styles.content}>
@@ -239,29 +120,24 @@ function RunScreen () {
 
                 <View style={styles.statCard}>
                   <Text style={styles.statLabel}>Kalori</Text>
-                  <Text style={styles.statValue}>{calories} kcal</Text>
+                  <Text style={styles.statValue}>{calories.toFixed(0)} kcal</Text>
                 </View>
 
                 <View style={styles.statCard}>
                   <Text style={styles.statLabel}>Tempo</Text>
-                  <Text style={styles.statValue}>{pace} dk/km</Text>
+                  <Text style={styles.statValue}>{calculatePace()} dk/km</Text>
                 </View>
               </View>
 
               {/* Butonlar */}
 
               <View style={styles.buttonGroup}>
-                <Button
-                  mode="contained"
-                  onPress={handleRunButton}
-                  >    
-                    {isRunning ? 'Koşuyu Bitir' : 'Koşuyu Başlat'}   
+                <StartRunButton />
                   
-                </Button>
 
                 <Button
                 mode="outlined"
-                onPress={resetTimer}
+                onPress={resetRun}
                 >
                   Reset
                 </Button>

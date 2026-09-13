@@ -9,8 +9,20 @@ import {
 import {LineChart} from 'react-native-chart-kit'; 
 import { Card } from 'react-native-paper';
 import * as Progress from 'react-native-progress';
+import StartRunButton from '../components/StartRunButton';
 
-function HomeScreen() {
+type HomeScreenProps = {
+    onStartRun: () => void;
+};
+
+function HomeScreen({onStartRun}: HomeScreenProps) {
+
+    const weeklyTotal= 12.4;
+    const weeklyDistance = 3;
+    const weeklyGoal = 5;
+    const dailyDistance = 4;
+    const dailyGoal = 5;
+    const weeklyData = [2.1, 3.4, 2.8, 4.2, 3.6, 4.8, 5.2];
 
     const screenWidth = Dimensions.get('window').width;
 
@@ -26,7 +38,7 @@ function HomeScreen() {
                 </Text>
 
                 <Text style={styles.weeklyDistance}>
-                    12.4 km
+                    {weeklyTotal} km 
                 </Text>
 
                 <LineChart
@@ -35,7 +47,7 @@ function HomeScreen() {
 
                     datasets: [
                         {
-                            data: [2.1, 3.4, 2.8, 4.2, 3.6, 4.8, 5.2],
+                            data: weeklyData,
                         },
                     ],
                    }}
@@ -80,11 +92,15 @@ function HomeScreen() {
                         </Text>
 
                         <Progress.Circle
-                            progress={0.6}
-                            size={70}
-                            thickness={7}
+                            progress={weeklyDistance / weeklyGoal}
+                            size={76}
+                            thickness={8}
+                            color="#3266cd"
+                            unfilledColor='#E6EDF5'
+                            borderWidth={0}
                             showsText={true}
-                            formatText={() => '3 km'}
+                            formatText={() => `${weeklyDistance} km`}
+                            textStyle={styles.weeklyProgressText}
                         />
 
                     </Card.Content>
@@ -98,17 +114,23 @@ function HomeScreen() {
                         </Text>
 
                          <Progress.Circle
-                            progress={0.8}
-                            size={70}
-                            thickness={7}
+                            progress={dailyDistance / dailyGoal}
+                            size={76}
+                            thickness={8}
+                            color="#15a760"
+                            unfilledColor='#E6EDF5'
+                            borderWidth={0}
                             showsText={true}
-                            formatText={() => '4 km'}
+                            formatText={() => `${dailyDistance} km`}
+                            textStyle={styles.dailyProgressText}
                         />
                     </Card.Content>
                 </Card>
             </View>
 
-            <View style={styles.bottomSection} />
+            <View style={styles.bottomSection}>
+                <StartRunButton onPress={onStartRun} /> 
+            </View>
               
         </View>
           
@@ -168,7 +190,8 @@ const styles = StyleSheet.create({
     },
 
     bottomSection: {
-        flex: 1,
+       paddingHorizontal: 16,
+       paddingTop: 15,
     },
 
     goalRow: {
@@ -199,6 +222,18 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: 'bold',
         color: '#101828',
+    },
+
+    weeklyProgressText: {
+           fontSize: 15,
+           fontWeight: '600',
+           color: "#3266cd"
+    },
+
+    dailyProgressText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#15a760',      
     },
 });
 

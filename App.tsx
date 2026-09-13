@@ -16,6 +16,8 @@ import { styles } from './styles';
 
 import { PaperProvider } from 'react-native-paper';
 
+import { RunProvider } from './src/context/RunContext';
+
 function App() {
 
   const [currentScreen, setCurrentScreen] =
@@ -24,46 +26,50 @@ function App() {
 
     return (
       <PaperProvider>
-        <SafeAreaProvider>        
-            <SafeAreaView style={styles.container}>
+        <RunProvider>
+          <SafeAreaProvider>        
+              <SafeAreaView style={styles.container}>
 
-              {/* 1. Koşullu Alan: Ana Sayfa (Dashboard) */}
-              {currentScreen === 'home' && (
-                <HomeScreen />
-              )}
+                {/* 1. Koşullu Alan: Ana Sayfa (Dashboard) */}
+                {currentScreen === 'home' && (
+                  <HomeScreen 
+                    onStartRun={() => setCurrentScreen('run')}
+                  />
+                )}
+                  
+
+                {/* 2. Ekran: Koşu Ekranı (Run) */}
+
+                {currentScreen === 'run' && (
+                  <RunScreen />
+                )}
+
                 
+                {/* 3. Alan: Sabit Tab Bar */}
 
-              {/* 2. Ekran: Koşu Ekranı (Run) */}
+                <View style ={styles.bottomNavigation}>
 
-              {currentScreen === 'run' && (
-                <RunScreen />
-              )}
+                  <Pressable 
+                    style={[styles.tabButton, currentScreen === 'home' && styles.tabButtonActive]}
+                    onPress={() => setCurrentScreen('home')} 
+                    >
+                      <Text style={[styles.tabText, currentScreen === 'home' && styles.tabTextActive]}>
+                        Ana Sayfa
+                      </Text>
+                    </Pressable>
 
-              
-              {/* 3. Alan: Sabit Tab Bar */}
-
-              <View style ={styles.bottomNavigation}>
-
-                <Pressable 
-                  style={[styles.tabButton, currentScreen === 'home' && styles.tabButtonActive]}
-                  onPress={() => setCurrentScreen('home')} 
+                  <Pressable
+                    style={[styles.tabButton, currentScreen === 'run' && styles.tabButtonActive]}
+                    onPress={() => setCurrentScreen('run')}
                   >
-                    <Text style={[styles.tabText, currentScreen === 'home' && styles.tabTextActive]}>
-                      Ana Sayfa
-                    </Text>
+                    <Text style={[styles.tabText, currentScreen === 'run' && styles.tabTextActive]}>Koşu</Text>
                   </Pressable>
 
-                <Pressable
-                  style={[styles.tabButton, currentScreen === 'run' && styles.tabButtonActive]}
-                  onPress={() => setCurrentScreen('run')}
-                >
-                  <Text style={[styles.tabText, currentScreen === 'run' && styles.tabTextActive]}>Koşu</Text>
-                </Pressable>
+                </View>
 
-              </View>
-
-          </SafeAreaView>
-        </SafeAreaProvider> 
+            </SafeAreaView>
+          </SafeAreaProvider> 
+        </RunProvider>
       </PaperProvider>  
   );
 }
