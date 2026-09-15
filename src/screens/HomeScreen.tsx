@@ -11,11 +11,7 @@ import { Card } from 'react-native-paper';
 import * as Progress from 'react-native-progress';
 import StartRunButton from '../components/StartRunButton';
 
-type HomeScreenProps = {
-    onStartRun: () => void;
-};
-
-function HomeScreen({onStartRun}: HomeScreenProps) {
+function HomeScreen() {
 
     const weeklyTotal= 12.4;
     const weeklyDistance = 3;
@@ -129,7 +125,7 @@ function HomeScreen({onStartRun}: HomeScreenProps) {
             </View>
 
             <View style={styles.bottomSection}>
-                <StartRunButton onPress={onStartRun} /> 
+                <StartRunButton /> 
             </View>
               
         </View>

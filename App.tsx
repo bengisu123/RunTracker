@@ -1,75 +1,72 @@
-import React, { useState } from 'react';
-import {
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+import React from 'react';
 
-import {
-  SafeAreaProvider,
-  SafeAreaView, 
-} from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import HomeScreen from './src/screens/HomeScreen';
 import RunScreen from './src/screens/RunScreen';
-
-import { styles } from './styles';
 
 import { PaperProvider } from 'react-native-paper';
 
 import { RunProvider } from './src/context/RunContext';
 
+export type RootTabParamList = {
+  Home: undefined;
+  Run : undefined;
+};
+
+const Tab = createBottomTabNavigator<RootTabParamList>();
+
+type TabLayout = NonNullable<
+  React.ComponentProps<typeof Tab.Navigator>['layout']
+>;
+
+const renderTabLayout: TabLayout = ({children, navigation, state}) => {
+  const currentRoute = state.routes[state.index];
+
+  return (
+    <RunProvider
+      isRunScreen={currentRoute?.name === 'Run'}
+      navigateToRun={() => navigation.navigate('Run')}
+    >
+      {children}
+    </RunProvider>
+  );
+};
+
 function App() {
-
-  const [currentScreen, setCurrentScreen] =
-   useState<'home' | 'run'>('home');
-
 
     return (
       <PaperProvider>
-        <RunProvider>
-          <SafeAreaProvider>        
-              <SafeAreaView style={styles.container}>
+        <SafeAreaProvider>
+          <NavigationContainer>
+              <Tab.Navigator
+                layout={renderTabLayout}
+                screenOptions={{
+                  headerShown: false,
+                }}
+              >
 
-                {/* 1. Koşullu Alan: Ana Sayfa (Dashboard) */}
-                {currentScreen === 'home' && (
-                  <HomeScreen 
-                    onStartRun={() => setCurrentScreen('run')}
-                  />
-                )}
-                  
+                <Tab.Screen
+                  name="Home"
+                  component={HomeScreen}
+                  options={{
+                    tabBarLabel: 'Ana Sayfa',
+                  }}
+                />
 
-                {/* 2. Ekran: Koşu Ekranı (Run) */}
+                <Tab.Screen
+                  name="Run"
+                  component={RunScreen}
+                  options={{
+                    tabBarLabel: 'Koşu',
+                  }}
+                />
 
-                {currentScreen === 'run' && (
-                  <RunScreen />
-                )}
-
-                
-                {/* 3. Alan: Sabit Tab Bar */}
-
-                <View style ={styles.bottomNavigation}>
-
-                  <Pressable 
-                    style={[styles.tabButton, currentScreen === 'home' && styles.tabButtonActive]}
-                    onPress={() => setCurrentScreen('home')} 
-                    >
-                      <Text style={[styles.tabText, currentScreen === 'home' && styles.tabTextActive]}>
-                        Ana Sayfa
-                      </Text>
-                    </Pressable>
-
-                  <Pressable
-                    style={[styles.tabButton, currentScreen === 'run' && styles.tabButtonActive]}
-                    onPress={() => setCurrentScreen('run')}
-                  >
-                    <Text style={[styles.tabText, currentScreen === 'run' && styles.tabTextActive]}>Koşu</Text>
-                  </Pressable>
-
-                </View>
-
-            </SafeAreaView>
-          </SafeAreaProvider> 
-        </RunProvider>
+              </Tab.Navigator>
+          </NavigationContainer>
+        </SafeAreaProvider>
       </PaperProvider>  
   );
 }

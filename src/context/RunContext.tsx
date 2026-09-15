@@ -1,13 +1,17 @@
 import React, {createContext, useContext, useEffect, useState, useRef } from 'react';
 import Geolocation from '@react-native-community/geolocation';
 import { PermissionsAndroid } from 'react-native';
-
 type RunContextType = {
-    isRunning: boolean;
+    runStatus: 'idle' | 'running' | 'paused';
+
     seconds: number;
     distance: number;
     locations: LocationPoint[];
-    setIsRunning: React.Dispatch<React.SetStateAction<boolean>>;
+    
+    setRunStatus: React.Dispatch<
+        React.SetStateAction<'idle' | 'running' | 'paused'>
+    >;
+
     setSeconds: React.Dispatch<React.SetStateAction<number>>;
     setDistance: React.Dispatch<React.SetStateAction<number>>;
     setLocations: React.Dispatch<React.SetStateAction<LocationPoint[]>>;
@@ -23,18 +27,29 @@ export type LocationPoint = {
 
 const RunContext = createContext<RunContextType | undefined>(undefined);
 
-export function RunProvider({children}: {children: React.ReactNode}) {
-    const [isRunning, setIsRunning] = useState(false);
+type RunProviderProps = {
+    children: React.ReactNode;
+    isRunScreen: boolean;
+    navigateToRun: () => void;
+};
+
+export function RunProvider({
+    children,
+    isRunScreen,
+    navigateToRun,
+}: RunProviderProps) {
     const [seconds, setSeconds] = useState(0);
     const [distance, setDistance] = useState(0);
     const [locations,setLocations] = useState<LocationPoint[]>([]); 
-
+    const [runStatus, setRunStatus] = 
+        useState<'idle' | 'running' | 'paused'>('idle');
+    
     const watchIdRef = useRef<number | null>(null);  
 
     useEffect(() => {
         let timer: ReturnType<typeof setInterval> | undefined;
 
-        if (isRunning) {
+        if (runStatus === 'running') {
             timer = setInterval(() => {
                 setSeconds(prevSeconds => prevSeconds + 1);
             }, 1000);
@@ -45,7 +60,7 @@ export function RunProvider({children}: {children: React.ReactNode}) {
                 clearInterval(timer);
             }
         };
-    }, [isRunning]);
+    }, [runStatus]);
 
     const calculateDistance = (
         point1: LocationPoint,
@@ -103,13 +118,22 @@ export function RunProvider({children}: {children: React.ReactNode}) {
 
 
     const handleRunButton = async () => {
-        if (isRunning) {
-        if (watchIdRef.current !== null) {
-            Geolocation.clearWatch(watchIdRef.current);
-            watchIdRef.current = null;
+        /*
+        * eğer run screende değilse
+        * önce run screen e yönlendir
+        * o screendeysek yönlendirmesiz devam et.
+        */
+        
+        if (!isRunScreen) {
+             navigateToRun();
         }
+        if (runStatus === 'running') {
+            if (watchIdRef.current !== null) {
+                Geolocation.clearWatch(watchIdRef.current);
+                watchIdRef.current = null;
+            }
 
-        setIsRunning(false);
+        setRunStatus('paused');
         return;
         }
 
@@ -161,7 +185,7 @@ export function RunProvider({children}: {children: React.ReactNode}) {
         );
 
         watchIdRef.current = watchId;
-        setIsRunning(true);     
+        setRunStatus('running');     
         }
     };
 
@@ -171,21 +195,21 @@ export function RunProvider({children}: {children: React.ReactNode}) {
         watchIdRef.current = null;
         }
 
-        setIsRunning(false);
         setSeconds(0);
         setDistance(0);
         setLocations([]);
+        setRunStatus('idle');
     };
 
     return (
         <RunContext.Provider
             value={{
-                isRunning,
                 seconds,             
                 distance,
                 locations,
+                runStatus,
 
-                setIsRunning,
+                setRunStatus,
                 setSeconds,
                 setDistance,
                 setLocations,

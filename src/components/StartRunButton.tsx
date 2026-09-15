@@ -5,21 +5,30 @@ import { useRun } from '../context/RunContext';
 
 function StartRunButton() {
 
-    const{
-        isRunning,
+   const{
+        runStatus,
         handleRunButton
-    } = useRun();
+    } = useRun(); 
 
     return (
         <Button
             mode="contained"
             textColor='#FFFFFF'
             onPress={handleRunButton}
-            style={styles.button}
+            style={[styles.button,
+                runStatus === 'running' && styles.finishButton,
+                runStatus === 'paused' && styles.pausedButton,
+                runStatus === 'idle' && styles.startButton,            
+            ]}
             contentStyle={styles.buttonContent}
             labelStyle={styles.buttonText}
         >
-            {isRunning ? 'Koşuyu Tamamla' : 'Koşu Başlat'}
+            {runStatus === 'running'
+            ? 'Koşuyu Durdur'
+            : runStatus === 'paused'
+            ? 'Koşuya Devam Et'
+            : 'Koşuyu Başlat'
+            }
         </Button>
     );
 }
@@ -27,7 +36,18 @@ function StartRunButton() {
 const styles = StyleSheet.create({
     button: {       
         borderRadius: 10,
-        backgroundColor: '#3a8657'
+    },
+
+    finishButton: {
+        backgroundColor: '#da3c3c',
+    },
+
+    pausedButton: {
+       backgroundColor: '#F59E0B',
+    },
+
+    startButton: {
+        backgroundColor: '#3a8657',
     },
 
     buttonContent: {

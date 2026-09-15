@@ -9,15 +9,16 @@ import {
 
 import { Button } from 'react-native-paper';
 import { useRun } from '../context/RunContext';
-import StartRunButton from '../components/StartRunButton';
 
 function RunScreen () {
 
     const {
+      runStatus,
       seconds,
       distance,
       locations,
       resetRun,
+      handleRunButton,
     } = useRun();
  
   const [calories, setCalories] = useState(0);
@@ -82,7 +83,13 @@ function RunScreen () {
 
 
     return(
-        <View style={styles.content}>
+        <View style={styles.container}>
+
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>
+              Aktif Koşu
+            </Text>
+          </View>
 
             {/* Harita */}
 
@@ -107,114 +114,229 @@ function RunScreen () {
               />
               </MapView>
 
-
-              <Text style={styles.timer}>{formatTime(seconds)}</Text> 
-
               {/* İstatistikler */}
 
-              <View style={styles.statsRow}>
-                <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>Mesafe</Text>
-                  <Text style={styles.statValue}>{distance.toFixed(2)} km</Text>
+              <View style={styles.infoCard}>
+
+                <View style={styles.infoRow}>
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Mesafe</Text>
+                      <Text style={styles.infoValue}>{distance.toFixed(2)} km</Text>
+                    </View>
+
+                    <View style={styles.verticalDivider} />
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Süre</Text>
+                      <Text style={styles.infoValue}>{formatTime(seconds)}</Text>
+                    </View>
                 </View>
 
-                <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>Kalori</Text>
-                  <Text style={styles.statValue}>{calories.toFixed(0)} kcal</Text>
-                </View>
+                    <View style={styles.horizontalDivider} />
 
-                <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>Tempo</Text>
-                  <Text style={styles.statValue}>{calculatePace()} dk/km</Text>
-                </View>
+                <View style={styles.infoRow}>
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Kalori</Text>
+                      <Text style={styles.infoValue}>{calories.toFixed(0)} kcal</Text>
+                    </View>
+
+                    <View style={styles.verticalDivider} />
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Tempo</Text>
+                      <Text style={styles.infoValue}>{calculatePace()} dk/km</Text>
+                    </View>
+                  </View>
+
               </View>
+
+              
 
               {/* Butonlar */}
 
-              <View style={styles.buttonGroup}>
-                <StartRunButton />
-                  
+              <View style={styles.buttonRow}>
 
-                <Button
-                mode="outlined"
-                onPress={resetRun}
-                >
-                  Reset
-                </Button>
-                
+                {runStatus === 'idle' && (
+
+                    <Button
+                      mode="contained"
+                      onPress={handleRunButton}
+                      style={styles.startButton}
+                      contentStyle={styles.buttonContent}
+                      labelStyle={styles.buttonText}    
+                    >
+                      Koşuyu Başlat
+                    </Button>
+                )}
+
+
+                {runStatus === 'running' && (
+
+                  <>
+                     <Button
+                      mode="contained"
+                      onPress={handleRunButton}
+                      style={styles.pauseButton}
+                      contentStyle={styles.buttonContent}
+                      labelStyle={styles.buttonText}
+                    >
+                      Duraklat
+                    </Button>
+
+                    <Button
+                      mode="contained"
+                      onPress={resetRun}
+                      style={styles.finishButton}
+                      contentStyle={styles.buttonContent}
+                      labelStyle={styles.buttonText}
+                    >
+                      Bitir
+                    </Button>
+
+                  </>
+                )}
+
+                {runStatus === 'paused' && (
+
+                  <>
+
+                   <Button
+                      mode="contained"
+                      onPress={handleRunButton}
+                      style={styles.startButton}
+                      contentStyle={styles.buttonContent}
+                      labelStyle={styles.buttonText}
+                    >
+                      Devam Et
+                    </Button>
+
+
+                     <Button
+                      mode="contained"
+                      onPress={resetRun}
+                      style={styles.finishButton}
+                      contentStyle={styles.buttonContent}
+                      labelStyle={styles.buttonText}
+                    >
+                      Bitir
+                    </Button>
+
+                  </>
+                )}
+
               </View>
-
             </View>
-
            );
         }
 
     const styles = StyleSheet.create({
 
-        content: {
+        container: {
             flex: 1,
-            padding: 24,
+            backgroundColor: '#F3F7FB',
+        },
+
+        header: {
+          height: 58,
+          backgroundColor: '#FFFFFF',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+
+        headerTitle: {
+          fontSize: 20,
+          fontWeight: '700',
+          color: '#101828',
         },
 
         map: {
             width: '100%',
-            height: 220,
-            marginBottom: 24,
-            borderRadius: 20,
+            height: 400,
         },
 
-        timer: {
-            fontSize: 32,
-            fontWeight: 'bold',
-            marginBottom: 30,
-            color: '#FFFFFF',
+        infoCard: {
+          backgroundColor: '#FFFFFF',
+          marginHorizontal: 16,
+          marginTop: -24,
+          borderRadius: 18,
+          paddingVertical: 18,
         },
 
-        statsRow: {
-            flexDirection: 'row',
-            gap: 10,
-            marginBottom: 24,
+        infoRow: {
+          flexDirection: 'row',
+          marginBottom: 14,
         },
 
-        statCard: {
-            flex: 1,
-            backgroundColor: '#102131',
-            padding: 14,
-            borderRadius: 14,
+        infoItem: {
+          flex: 1,
+          alignItems: 'center',
         },
 
-        statLabel: {
-            fontSize: 12,
-            color: '#8D9AAA',
-            marginBottom: 6,
+        infoLabel: {
+          fontSize: 15,
+          fontWeight: '500',
+          color: '#404349',
+          marginBottom: 5,
         },
 
-        statValue: {
-            fontSize: 17,
-            fontWeight: '600',
-            color: '#FFFFFF',
+        infoValue: {
+          fontSize: 22,
+          fontWeight: '700',
+          color: '#101828'
         },
 
-        buttonGroup: {
-            gap: 12,
+        verticalDivider: {
+          width: 1,
+          height: 35,
+          marginTop: 10,
+          backgroundColor: '#9299a9',
         },
 
-        button: {
-            backgroundColor: '#222222',
-            paddingVertical: 16,
-            paddingHorizontal: 32,
-            borderRadius: 12,
-            alignItems: 'center',
-            justifyContent: 'center',
+        horizontalDivider: {
+          height: 0.7,
+          marginHorizontal: 40,
+          marginVertical: 14,
+          backgroundColor: '#9299a9',
+        },
+
+        buttonRow: {
+          flexDirection: 'row',
+          gap: 12,
+          marginHorizontal: 16,
+          marginTop: 14,
+        },
+
+        startButton: {
+          flex: 1,
+          borderRadius: 10,
+          backgroundColor: '#3a8657',
+        },
+
+        pauseButton: {
+          flex: 1,
+          borderRadius: 10,
+          backgroundColor: '#1597E5',
+        },
+
+        finishButton: {
+          flex: 1,
+          borderRadius: 10,
+          backgroundColor: '#EF4444',
+        },
+
+        buttonContent: {
+          height: 48,
         },
 
         buttonText: {
-            color: '#FFFFFF',
-            fontSize: 18,
-            fontWeight: '600',
+          fontSize: 14,
+          fontWeight: '700',
+          color: '#FFFFFF',
         },
 
-        });
+      });
 
 
 export default RunScreen;
